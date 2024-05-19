@@ -277,14 +277,12 @@ async def help_msg(
         text=
         """
 Here are the things that you can do.
-/start - start checking feeds. Pass INTERVAL along with this 
-command.
-/addfeeds - Add a feed. Pass URL along with this command.
-/removefeeds - Remove a feed. Pass URL 
-along with this command.
-/changeinterval - Change feed update interval time.
-/showfeeds - Show the list of feeds. 
-/showjob - Show job.
+/start <interval> - Start reading feeds
+/addfeeds <url> ... - Add feeds.
+/removefeeds <url> ... - Remove feeds..
+/changeinterval <interval> - Change the feed update interval.
+/showfeeds - Show feeds.
+/showjob - Show the datetime of the next feed update job..
 /help - This message.
         """,
         parse_mode=ParseMode.MARKDOWN
@@ -318,7 +316,7 @@ async def start(
     except IndexError:
         context_logger.error(f"{CROSS_MARK_EMOJI} Interval missing.")
         await update.message.reply_text(
-            f"{CROSS_MARK_EMOJI} Interval missing. Please do `/start <INTERVAL>`\n For example, `/start 10`",
+            f"{CROSS_MARK_EMOJI} Interval missing. Please do /help.",
             parse_mode=ParseMode.MARKDOWN)
 
 
