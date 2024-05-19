@@ -5,8 +5,9 @@ import contextlib
 import os
 import sys
 import emoji
-import telegram
-import telegram.ext
+from telegram import Update
+from telegram.constants import ParseMode
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
 READER_DB_PATH = "/usr/src/app/reader/db.sqlite"
 BOT_TOKEN = os.environ["BOT_TOKEN"]
@@ -22,26 +23,26 @@ logger.add(
 
 
 async def error_handler(
-    update: telegram.Update, context: telegram.ext.CallbackContext.DEFAULT_TYPE
+        update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> None:
     """Error handler.
 
     Args:
-        update (telegram.Update): Object representing the incoming update from Telegram.
-        context (telegram.ext.CallbackContext.DEFAULT_TYPE): Object representing the callback context.
+        update (Update): Object representing the incoming update from Telegram.
+        context (ContextTypes.DEFAULT_TYPE): Object representing the callback context.
     """
     logger.error(f"{CROSS_MARK_EMOJI} {context.error}: {update}")
 
 
-async def check_feeds(context: telegram.ext.CallbackContext.DEFAULT_TYPE) -> None:
+async def check_feeds(context: ContextTypes.DEFAULT_TYPE) -> None:
     """Check for feed updates.
 
     Args:
-        context (telegram.ext.CallbackContext.DEFAULT_TYPE): Object representing the callback context.
+        context (ContextTypes.DEFAULT_TYPE): Object representing the callback context.
     """
 
     async def mark_entries_as_read(
-        reader: r.Reader, feed_title: str, entries: List[r.Entry]
+            reader: r.Reader, feed_title: str, entries: List[r.Entry]
     ) -> None:
         """Mark entries as read.
 
@@ -96,14 +97,14 @@ async def check_feeds(context: telegram.ext.CallbackContext.DEFAULT_TYPE) -> Non
 
 
 async def send_feed_entries(
-    context: telegram.ext.CallbackContext.DEFAULT_TYPE,
-    feed_title: str,
-    entries: List[r.Entry],
+        context: ContextTypes.DEFAULT_TYPE,
+        feed_title: str,
+        entries: List[r.Entry],
 ) -> None:
     """Send feed entries.
 
     Args:
-        context (telegram.ext.CallbackContext.DEFAULT_TYPE): Object representing the callback context.
+        context (ContextTypes.DEFAULT_TYPE): Object representing the callback context.
         feed_title (str): The title of the feed.
         entries (List[r.Entry]): Feed entries to send.
     """
@@ -123,13 +124,13 @@ async def send_feed_entries(
 
 
 async def add_feeds(
-    update: telegram.Update, context: telegram.ext.CallbackContext.DEFAULT_TYPE
+        update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> None:
     """Add feeds.
 
     Args:
-        update (telegram.Update): Object representing the incoming update from Telegram.
-        context (telegram.ext.CallbackContext.DEFAULT_TYPE): Object representing the callback context.
+        update (Update): Object representing the incoming update from Telegram.
+        context (ContextTypes.DEFAULT_TYPE): Object representing the callback context.
 
     Command Args:
         url (str): The URL of the feed to add.
@@ -151,13 +152,13 @@ async def add_feeds(
 
 
 async def remove_feeds(
-    update: telegram.Update, context: telegram.ext.CallbackContext.DEFAULT_TYPE
+        update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> None:
     """Remove feeds.
 
     Args:
-        update (telegram.Update): Object representing the incoming update from Telegram.
-        context (telegram.ext.CallbackContext.DEFAULT_TYPE): Object representing the callback context.
+        update (Update): Object representing the incoming update from Telegram.
+        context (ContextTypes.DEFAULT_TYPE): Object representing the callback context.
 
     Command Args:
         url (str): The URL of the feed to remove.
@@ -179,13 +180,13 @@ async def remove_feeds(
 
 
 async def change_interval(
-    update: telegram.Update, context: telegram.ext.CallbackContext.DEFAULT_TYPE
+        update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> None:
     """Change the feed update interval.
 
     Args:
-        update (telegram.Update): Object representing the incoming update from Telegram.
-        context (telegram.ext.CallbackContext.DEFAULT_TYPE): Object representing the callback context.
+        update (Update): Object representing the incoming update from Telegram.
+        context (ContextTypes.DEFAULT_TYPE): Object representing the callback context.
 
     Command Args:
         interval (int): The interval in seconds to check for feed updates.
@@ -212,13 +213,13 @@ async def change_interval(
 
 
 async def show_feeds(
-    update: telegram.Update, context: telegram.ext.CallbackContext.DEFAULT_TYPE
+        update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> None:
     """Show feeds.
 
     Args:
-        update (telegram.Update): Object representing the incoming update from Telegram.
-        context (telegram.ext.CallbackContext.DEFAULT_TYPE): Object representing the callback context.
+        update (Update): Object representing the incoming update from Telegram.
+        context (ContextTypes.DEFAULT_TYPE): Object representing the callback context.
     """
     context_logger = logger.bind(function="show_feeds")
     context_logger.info(f"{CHECK_MARK_EMOJI} Showing feeds.")
@@ -235,13 +236,13 @@ async def show_feeds(
 
 
 async def show_job(
-    update: telegram.Update, context: telegram.ext.CallbackContext.DEFAULT_TYPE
+        update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> None:
     """Show the datetime of the next feed update job.
 
     Args:
-        update (telegram.Update): Object representing the incoming update from Telegram.
-        context (telegram.ext.CallbackContext.DEFAULT_TYPE): Object representing the callback context.
+        update (Update): Object representing the incoming update from Telegram.
+        context (ContextTypes.DEFAULT_TYPE): Object representing the callback context.
     """
     context_logger = logger.bind(function="show_job")
     context_logger.info(f"{CHECK_MARK_EMOJI} Showing feed(s) job.")
@@ -255,16 +256,51 @@ async def show_job(
         )
 
 
+async def help_msg(
+        update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> None:
+    """Send help message
+
+    When someone does /help, the help message is sent from here.
+
+    Args:
+        update (Update): Object representing the incoming update from Telegram.
+        context (ContextTypes.DEFAULT_TYPE): Object representing the callback context.
+
+    Returns: None
+
+    """
+    context_logger = logger.bind(function="help")
+    context_logger.info(f"{CHECK_MARK_EMOJI} Sending help message.")
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=
+        """
+Here are the things that you can do.
+/start - start checking feeds. Pass INTERVAL along with this 
+command.
+/addfeeds - Add a feed. Pass URL along with this command.
+/removefeeds - Remove a feed. Pass URL 
+along with this command.
+/changeinterval - Change feed update interval time.
+/showfeeds - Show the list of feeds. 
+/showjob - Show job.
+/help - This message.
+        """,
+        parse_mode=ParseMode.MARKDOWN
+    )
+
+
 async def start(
-    update: telegram.Update, context: telegram.ext.CallbackContext.DEFAULT_TYPE
+        update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> None:
     """Start reading feeds.
 
     Starts the background job to read feeds on an interval.
 
     Args:
-        update (telegram.Update): Object representing the incoming update from Telegram.
-        context (telegram.ext.CallbackContext.DEFAULT_TYPE): Object representing the callback context.
+        update (Update): Object representing the incoming update from Telegram.
+        context (ContextTypes.DEFAULT_TYPE): Object representing the callback context.
 
     Command Args:
         interval (int): The interval in seconds to check for feed updates.
@@ -277,18 +313,22 @@ async def start(
         )
         context.job_queue.run_repeating(check_feeds, interval=interval, first=1)
         context_logger.info(f"{CHECK_MARK_EMOJI} Started feed(s) job.")
-        await update.message.reply_text(f"{CHECK_MARK_EMOJI} Started feed(s) job.")
+        await context.bot.send_message(chat_id=update.effective_chat.id,
+                                       text=f"{CHECK_MARK_EMOJI} Started feed(s) job.")
     except IndexError:
         context_logger.error(f"{CROSS_MARK_EMOJI} Interval missing.")
-        await update.message.reply_text(f"{CROSS_MARK_EMOJI} Interval missing.")
+        await update.message.reply_text(
+            f"{CROSS_MARK_EMOJI} Interval missing. Please do `/start <INTERVAL>`\n For example, `/start 10`",
+            parse_mode=ParseMode.MARKDOWN)
 
 
-app = telegram.ext.ApplicationBuilder().token(BOT_TOKEN).build()
-app.add_error_handler(error_handler)
-app.add_handler(telegram.ext.CommandHandler("start", start))
-app.add_handler(telegram.ext.CommandHandler("addfeeds", add_feeds))
-app.add_handler(telegram.ext.CommandHandler("removefeeds", remove_feeds))
-app.add_handler(telegram.ext.CommandHandler("changeinterval", change_interval))
-app.add_handler(telegram.ext.CommandHandler("showfeeds", show_feeds))
-app.add_handler(telegram.ext.CommandHandler("showjob", show_job))
+app = ApplicationBuilder().token(BOT_TOKEN).build()
+app.add_error_handler(callback=error_handler)
+app.add_handler(CommandHandler("start", start))
+app.add_handler(CommandHandler("addfeeds", add_feeds))
+app.add_handler(CommandHandler("removefeeds", remove_feeds))
+app.add_handler(CommandHandler("changeinterval", change_interval))
+app.add_handler(CommandHandler("showfeeds", show_feeds))
+app.add_handler(CommandHandler("showjob", show_job))
+app.add_handler(CommandHandler("help", help_msg))
 app.run_polling()
